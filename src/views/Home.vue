@@ -1,18 +1,23 @@
 <template>
   <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <!--<img alt="Vue logo" src="../assets/logo.png" width="192px">-->
+    <TestTable v-on:testing-complete="handleResults" />
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import HelloWorld from '@/components/HelloWorld.vue'
+import TestTable from '@/components/Table.vue'
 
 export default {
   name: 'home',
   components: {
-    HelloWorld
+    TestTable
+  }
+  methods: {
+    handleResults: function (timestamps) {
+      
+    }
   }
 }
 </script>

@@ -1,41 +1,88 @@
 <template>
   <div id="focusmeter">
-  <h2>Focus Meter</h2>
-
-  <CellItem v-for="cell in table"
-             v-bind:cell=cell
-             v-bind:key=cell.key
-             v-on:click.native="toggle(cell)"
-  >
-  </CellItem>
-
-  <p> Expecting cell: {{ expectedcell.color}} {{ expectedcell.number }}</p>
+    <Stopwatch
+      v-bind:state=state
+      v-on:testing-start="startTesting"
+      v-on:testing-stop="stopTesting"
+      v-on:testing-reset="resetTesting"
+      />
+    <section id="gorbov-table">
+      <CellItem v-for="cell in table"
+                 v-bind:cell=cell
+                 v-bind:key=cell.key
+                 v-on:click.native="toggle(cell)"
+      >
+    </CellItem>
+    </section>
+    <h3>{{mode}}/2</h3>
+    <p>Expecting cell: {{ expectedcell.color }} {{ expectedcell.number }}</p>
+    <div>{{ title }}</div>
   </div>
 </template>
 
 <script>
 import CellItem from './Cell.vue'
+import Stopwatch from './Stopwatch.vue'
 
 export default {
   name: 'TestTable',
 
   components: {
-    CellItem
+    CellItem,
+    Stopwatch
   },
 
   data () {
     return {
+      state: 'stopped',
+      title: '',
       table: [],
+      mode: 1,
       timestamps: [],
-      expectedcell: { color: 'red', number: 25 }
+      expectedcell: {},
+      expected: []
     }
   },
-
   created: function () {
-    this.createTable()
+    // this.createTable()
   },
 
   methods: {
+    startTesting: function (startTime) {
+      this.state = 'going'
+      console.log('Testing started')
+      this.timestamps.push({ 'startedAt': startTime })
+      this.table.length = 0
+      this.expected.length = 0
+      this.calc_expected_seq()
+      this.expectedcell = this.expected.shift()
+      this.createTable()
+    },
+    stopTesting: function (stopTime) {
+      // this.state = 'stopped'
+    },
+    resetTesting: function (resetTime) {
+      // this.state = 'reseted'
+      console.log('Testing reseted')
+      this.resetTable()
+    },
+    completeTesting: function (completeTime) {
+      this.state = 'stopped'
+      this.title = 'Тест пройден'
+      this.timestamps.push({ 'completedAt': completeTime })
+      if (this.mode === 1) {
+        this.mode = 2
+        this.startTesting()
+      } else {
+        this.$emit('testing-complete', this.timestamps, this.mode)
+      }
+
+      prev_stamp = this.timestamps[0]
+      for (let stamp in this.timestamps) {
+        let diff = Math.abs(stamp - prev_stamp)
+        this.title += '<p>' + diff + '</p>'
+      }
+    },
     shuffleTable: function () {
       for (var i = 0; i < 100; i++) {
         var x = Math.floor(Math.random() * 49)
@@ -43,30 +90,63 @@ export default {
         var tmp = this.table[x]
         this.table[x] = this.table[y]
         this.table[y] = tmp
+        this.$forceUpdate()
       }
     },
 
     createTable: function () {
-      for (var i = 1; i <= 24; i++) {
-        this.table.push({ number: i, color: 'black', founded: false, key: i })
+      for (let i = 1; i <= 24; i++) {
+        this.table.push({ number: i, color: 'black', found: false, key: i })
       }
-      for (i = 1; i <= 25; i++) {
-        this.table.push({ number: i, color: 'red', founded: 'false', key: 24 + i })
+      for (let i = 1; i <= 25; i++) {
+        this.table.push({ number: i, color: 'red', found: false, key: 24 + i })
       }
       this.shuffleTable()
     },
 
-    toggle: function (cell) {
-      cell.founded = true
-      if (this.expectedcell.number === cell.number &&
-          this.expectedcell.color === cell.color) {
-        this.expectedcell.color = (this.expectedcell.color === 'black') ? 'red' : 'black'
-        this.expectedcell.number = (this.expectedcell.color === 'black') ? cell.number - 1 : cell.number
-        console.log('OK! Now expecting:', this.expectedcell.color, this.expectedcell.number)
+    resetTable: function () {
+      this.shuffleTable()
+      for (let i = 1; i <= 49; i++) {
+        this.table[i].found = false
       }
-      this.timestamps.push({ date: Date.now(), key: cell.key })
-      this.lastcell = cell
-      console.log(cell.number)
+      this.expectedcell = { color: 'red', number: 25 }
+    },
+    is_expected: function (cell) {
+      return (this.expectedcell.number === cell.number &&
+            this.expectedcell.color === cell.color)
+    },
+    calc_expected_seq: function (cell) {
+    // mode1: 1b ->  2b -> .. -> 24b -> 25r -> 24r -> .. -> 1r
+    // mode2: 1b -> 25r -> 2b -> 24r -> ..  -> 24b -> 1r
+      if (this.mode === 1) {
+        for (let i = 1; i <= 24; i++) {
+          this.expected.push({ color: 'black', number: i })
+        }
+        for (let i = 25; i >= 1; i--) {
+          this.expected.push({ color: 'red', number: i })
+        }
+      }
+      if (this.mode === 2) {
+        for (let i = 1, j = 24; i <= 25 || j >= 0; i++, j--) {
+          this.expected.push({ color: 'red', number: i })
+          this.expected.push({ color: 'black', number: j })
+        }
+        this.expected.pop()
+      }
+    },
+    toggle: function (cell) {
+      if (this.is_expected(cell)) {
+        cell.found = true
+        this.timestamps.push({ found: Date.now(), key: cell.key })
+
+        if (this.expected.length > 0) {
+          this.expectedcell = this.expected.shift()
+        } else {
+          this.completeTesting(Date.now())
+        }
+      } else {
+        this.timestamps.push({ missed: Date.now(), key: cell.key })
+      }
     }
   }
 }
@@ -82,7 +162,7 @@ body {
 
 #app {
   background: #fff;
-  border-radius: 4px;
+  border-radius: 10px;
   padding: 20px;
   text-align: center;
   transition: all 0.2s;
@@ -101,13 +181,14 @@ del {
   color: rgba(0, 0, 0, 0.3);
 }
 
-#focusmeter {
+#gorbov-table {
   width: 280px;
   height: 280px;
   margin: auto;
+  clear: both
 }
 
-#focusmeter div{
+#gorbov-table div{
   float: left;
   width: 30px;
   height: 30px;
@@ -116,16 +197,16 @@ del {
   vertical-align: middle;
 }
 
-#focusmeter div:hover {
+#gorbov-table div:hover {
    opacity: 0.8;
 }
 
-#focusmeter .red {
+#gorbov-table .red {
   background-color: maroon;
   color: white;
 }
 
-#focusmeter .black {
+#gorbov-table .black {
   background-color: black;
   color: white;
 }
