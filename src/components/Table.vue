@@ -7,10 +7,11 @@
       v-on:testing-reset="resetTesting"
       />
     <section id="gorbov-table">
-      <CellItem v-for="cell in table"
-                 v-bind:cell=cell
-                 v-bind:key=cell.key
-                 v-on:click.native="toggle(cell)"
+      <CellItem
+       v-for="cell in table"
+       v-bind:cell=cell
+       v-bind:key=cell.key
+       v-on:click.native="toggle(cell)"
       >
     </CellItem>
     </section>
@@ -40,7 +41,8 @@ export default {
       mode: 1,
       timestamps: [],
       expectedcell: {},
-      expected: []
+      expected: [],
+      testing: {}
     }
   },
   created: function () {
@@ -51,7 +53,7 @@ export default {
     startTesting: function (startTime) {
       this.state = 'going'
       console.log('Testing started')
-      this.timestamps.push({ 'startedAt': startTime })
+      this.timestamps.push({ event: 'start', time: startTime })
       this.table.length = 0
       this.expected.length = 0
       this.calc_expected_seq()
@@ -69,19 +71,36 @@ export default {
     completeTesting: function (completeTime) {
       this.state = 'stopped'
       this.title = 'Тест пройден'
-      this.timestamps.push({ 'completedAt': completeTime })
+      this.timestamps.push({ event: 'finish', time: completeTime })
       if (this.mode === 1) {
         this.mode = 2
         this.startTesting()
       } else {
         this.$emit('testing-complete', this.timestamps, this.mode)
       }
-
-      prev_stamp = this.timestamps[0]
-      for (let stamp in this.timestamps) {
-        let diff = Math.abs(stamp - prev_stamp)
-        this.title += '<p>' + diff + '</p>'
+      this.testing = {
+        'mode': this.mode,
+        'startedAt': this.timestamps[0],
+        'finishAt': this.timestamps[this.timestamps.length - 1],
+        'clicks': this.timestamps.length,
+        'times': {
+          'red': { min: 999, avg: 0, max: -999, total: 0 },
+          'black': { min: 999, avg: 0, max: -999, total: 0 }
+        }
       }
+      let prevStamp = this.timestamps[0]
+      for (let stamp of this.timestamps) {
+        if (stamp.event === 'found') {
+          stamp['span'] = Math.abs(stamp.time - prevStamp.time) / 1000
+          let c = stamp['cell'].color
+          this.testing.times[c].max = Math.max(this.testing.times[c].max, stamp.span)
+          this.testing.times[c].min = Math.min(this.testing.times[c].min, stamp.span)
+          this.testing.times[c].total += stamp.span
+          prevStamp = stamp
+        }
+      }
+      this.testing.times.red.avg = this.testing.times.red.total / 25
+      this.testing.times.black.avg = this.testing.times.black.total / 24
     },
     shuffleTable: function () {
       for (var i = 0; i < 100; i++) {
@@ -90,8 +109,8 @@ export default {
         var tmp = this.table[x]
         this.table[x] = this.table[y]
         this.table[y] = tmp
-        this.$forceUpdate()
       }
+      this.$forceUpdate()
     },
 
     createTable: function () {
@@ -137,16 +156,22 @@ export default {
     toggle: function (cell) {
       if (this.is_expected(cell)) {
         cell.found = true
-        this.timestamps.push({ found: Date.now(), key: cell.key })
-
         if (this.expected.length > 0) {
           this.expectedcell = this.expected.shift()
         } else {
           this.completeTesting(Date.now())
         }
-      } else {
-        this.timestamps.push({ missed: Date.now(), key: cell.key })
       }
+
+      this.timestamps.push({
+        'event': (cell.found ? 'found' : 'missed'),
+        'time': Date.now(),
+        'cell': {
+          'color': cell.color,
+          'number': cell.number
+        },
+        'key': cell.key
+      })
     }
   }
 }
