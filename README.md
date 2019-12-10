@@ -1,4 +1,5 @@
-# focusmeterx
+# Focusmeterx
+Web service for testing of focus and concentration ability based on Shulte-Gorbov tables.
 
 ## Project setup
 ```
