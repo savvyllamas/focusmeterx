@@ -13,10 +13,10 @@ export default {
   name: 'home',
   components: {
     TestTable
-  }
+  },
   methods: {
     handleResults: function (timestamps) {
-      
+
     }
   }
 }
