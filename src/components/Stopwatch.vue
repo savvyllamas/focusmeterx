@@ -62,7 +62,7 @@ export default {
       this.timestamps = []
     },
     startTimer: function () {
-      this.timestamps.push({ start: Date.now() })
+      this.timestamps.push({ event: 'start', stamp: Date.now() })
       this.timer = setInterval(() => this.countdown(), 1000)
       this.resetButton = true
       this.title = 'Идёт тестирование'
@@ -70,7 +70,7 @@ export default {
       // this.state = 'started'
     },
     stopTimerExternal: function () {
-      this.timestamps.push({ stop: Date.now() })
+      this.timestamps.push({ event: 'stop', stamp: Date.now() })
       clearInterval(this.timer)
       this.timer = null
       this.resetButton = true
@@ -79,7 +79,7 @@ export default {
       // this.state = 'stopped'
     },
     stopTimer: function () {
-      this.timestamps.push({ stop: Date.now() })
+      this.timestamps.push({ event: 'stop', stamp: Date.now() })
       clearInterval(this.timer)
       this.timer = null
       this.resetButton = true
@@ -88,7 +88,7 @@ export default {
       // this.state = 'stopped'
     },
     resetTimer: function () {
-      this.timestamps.push({ reset: Date.now() })
+      this.timestamps.push({ event: 'reset', stamp: Date.now() })
       this.totalTime = 0
       clearInterval(this.timer)
       this.timer = null

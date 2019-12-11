@@ -99,8 +99,8 @@ export default {
           prevStamp = stamp
         }
       }
-      this.testing.times.red.avg = this.testing.times.red.total / 25
       this.testing.times.black.avg = this.testing.times.black.total / 24
+      this.testing.times.red.avg = this.testing.times.red.total / 25
     },
     shuffleTable: function () {
       for (var i = 0; i < 100; i++) {
