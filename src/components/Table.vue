@@ -42,7 +42,7 @@ export default {
       timestamps: [],
       expectedcell: {},
       expected: [],
-      testing: {}
+      results: []
     }
   },
   created: function () {
@@ -52,7 +52,6 @@ export default {
   methods: {
     startTesting: function (startTime) {
       this.state = 'going'
-      console.log('Testing started')
       this.timestamps.push({ event: 'start', time: startTime })
       this.table.length = 0
       this.expected.length = 0
@@ -65,20 +64,11 @@ export default {
     },
     resetTesting: function (resetTime) {
       // this.state = 'reseted'
-      console.log('Testing reseted')
       this.resetTable()
     },
-    completeTesting: function (completeTime) {
-      this.state = 'stopped'
-      this.title = 'Тест пройден'
-      this.timestamps.push({ event: 'finish', time: completeTime })
-      if (this.mode === 1) {
-        this.mode = 2
-        this.startTesting()
-      } else {
-        this.$emit('testing-complete', this.timestamps, this.mode)
-      }
-      this.testing = {
+    calcTestingStat: function () {
+      let t = {}
+      t = {
         'mode': this.mode,
         'startedAt': this.timestamps[0],
         'finishAt': this.timestamps[this.timestamps.length - 1],
@@ -93,14 +83,29 @@ export default {
         if (stamp.event === 'found') {
           stamp['span'] = Math.abs(stamp.time - prevStamp.time) / 1000
           let c = stamp['cell'].color
-          this.testing.times[c].max = Math.max(this.testing.times[c].max, stamp.span)
-          this.testing.times[c].min = Math.min(this.testing.times[c].min, stamp.span)
-          this.testing.times[c].total += stamp.span
+          t.times[c].max = Math.max(t.times[c].max, stamp.span)
+          t.times[c].min = Math.min(t.times[c].min, stamp.span)
+          t.times[c].total += stamp.span
           prevStamp = stamp
         }
       }
-      this.testing.times.black.avg = this.testing.times.black.total / 24
-      this.testing.times.red.avg = this.testing.times.red.total / 25
+      t.times.black.avg = t.times.black.total / 24
+      t.times.red.avg = t.times.red.total / 25
+
+      return t
+    },
+    completeTesting: function (completeTime) {
+      this.state = 'stopped'
+      this.title = 'Тест пройден'
+      this.timestamps.push({ event: 'finish', time: completeTime })
+      this.results.push(this.calcTestingStat())
+
+      if (this.mode === 1) {
+        this.mode = 2
+        this.startTesting()
+      } else {
+        this.$emit('testing-complete', this.timestamps, this.mode)
+      }
     },
     shuffleTable: function () {
       for (var i = 0; i < 100; i++) {
