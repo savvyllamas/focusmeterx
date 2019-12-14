@@ -39,7 +39,6 @@ export default {
   watch: {
     state: function (newState, oldState) {
       if (newState === 'stopped' && oldState === 'going') {
-        console.log('external timer stop')
         this.stopTimerExternal()
       }
       if (newState === 'started') {
